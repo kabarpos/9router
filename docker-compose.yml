@@ -38,5 +38,5 @@ volumes:
 
 networks:
   gateway:
-    name: bagikansync_default
+    name: caddy-net
     external: true
