@@ -1,27 +1,21 @@
 # syntax=docker/dockerfile:1.7
-
 ARG NODE_IMAGE=node:22-alpine
-
 FROM ${NODE_IMAGE} AS base
 WORKDIR /app
-# CN mirror for apk (used by builder and runner stages)
-RUN sed -i 's|dl-cdn.alpinelinux.org|mirrors.aliyun.com|g' /etc/apk/repositories
-
-# Selalu gunakan npm terbaru yang tersedia
-RUN npm install -g npm@latest
 
 FROM base AS builder
 
 RUN apk --no-cache upgrade && apk --no-cache add python3 make g++ linux-headers
 
 COPY package.json ./
-RUN npm install --registry=https://registry.npmmirror.com
+RUN --mount=type=cache,target=/root/.npm \
+  npm install
 
 COPY . ./
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 
-FROM base AS runner
+FROM ${NODE_IMAGE} AS runner
 WORKDIR /app
 
 LABEL org.opencontainers.image.title="9router"
@@ -37,17 +31,14 @@ COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/custom-server.js ./custom-server.js
 COPY --from=builder /app/open-sse ./open-sse
-
 # Next file tracing can omit sibling files; MITM runs server.js as a separate process.
 COPY --from=builder /app/src/mitm ./src/mitm
-
 # Standalone node_modules may omit deps only required by the MITM child process.
 COPY --from=builder /app/node_modules/node-forge ./node_modules/node-forge
-
 # Ensure `next` is available at runtime in case tracing did not include it.
 COPY --from=builder /app/node_modules/next ./node_modules/next
-
-# sql.js loads dist/sql-wasm.wasm by path at runtime.
+# sql.js loads dist/sql-wasm.wasm by path at runtime; tracing only follows JS imports,
+# so the last-resort DB driver would abort with ENOENT on the missing binary.
 COPY --from=builder /app/node_modules/sql.js ./node_modules/sql.js
 # node-machine-id is createRequire-loaded at runtime; tracing omits it.
 COPY --from=builder /app/node_modules/node-machine-id ./node_modules/node-machine-id
