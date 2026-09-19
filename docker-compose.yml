@@ -3,6 +3,18 @@ services:
     image: decolua/9router:latest
     container_name: 9router
     restart: always
+    entrypoint:
+      - sh
+      - -c
+      - |
+        echo "[startup] Updating npm to latest..."
+        npm install -g npm@latest --prefer-online || true
+        chmod -R a+rx /usr/local/lib/node_modules /usr/local/bin 2>/dev/null || true
+        if [ -f /entrypoint.sh ]; then
+          exec /entrypoint.sh node custom-server.js
+        else
+          exec node custom-server.js
+        fi
 
     volumes:
       - 9router-data:/app/data
