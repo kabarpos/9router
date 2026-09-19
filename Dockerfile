@@ -48,10 +48,11 @@ RUN mkdir -p /app/data && chown -R node:node /app && \
   mkdir -p /app/data-home && chown node:node /app/data-home && \
   ln -sf /app/data-home /root/.9router 2>/dev/null || true
 
-# Fix permissions at runtime (handles mounted volumes) and update 9router
+# Fix permissions at runtime (handles mounted volumes) and update npm + 9router
 RUN apk --no-cache upgrade && apk --no-cache add su-exec && \
   printf '#!/bin/sh\n\
-echo "[entrypoint] Updating 9router to latest..."\n\
+echo "[entrypoint] Updating npm and 9router to latest..."\n\
+npm install -g npm@latest --prefer-online || echo "[entrypoint] Warning: could not update npm, continuing with installed version"\n\
 npm i -g 9router@latest --prefer-online || echo "[entrypoint] Warning: could not update 9router, continuing with installed version"\n\
 chmod -R a+rx /usr/local/lib/node_modules /usr/local/bin 2>/dev/null || true\n\
 mkdir -p /app/data /app/data-home 2>/dev/null || true\n\
