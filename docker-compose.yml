@@ -1,13 +1,8 @@
 services:
   9router:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: decolua/9router:latest
     container_name: 9router
     restart: always
-
-    labels:
-      com.getarcaneapp.arcane.updater: "false"
 
     volumes:
       - 9router-data:/app/data
