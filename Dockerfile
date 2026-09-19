@@ -2,6 +2,7 @@
 ARG NODE_IMAGE=node:22-alpine
 FROM ${NODE_IMAGE} AS base
 WORKDIR /app
+RUN npm install -g npm@latest
 
 FROM base AS builder
 
@@ -15,7 +16,7 @@ COPY . ./
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 
-FROM ${NODE_IMAGE} AS runner
+FROM base AS runner
 WORKDIR /app
 
 LABEL org.opencontainers.image.title="9router"
